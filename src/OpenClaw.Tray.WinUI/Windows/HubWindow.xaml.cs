@@ -84,7 +84,7 @@ public sealed partial class HubWindow : WindowEx
                 AppModel.PropertyChanged -= OnAppModelChanged;
         };
 
-        this.SetWindowSize(900, 650);
+        this.SetWindowSize(1000, 650);
         this.CenterOnScreen();
         this.SetIcon(IconHelper.GetStatusIconPath(ConnectionStatus.Connected));
 
