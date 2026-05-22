@@ -141,7 +141,8 @@
 
                     <Slider x:Uid="VoiceSettingsPage_SilenceSlider" x:Name="SilenceSlider" Header="Silence timeout (seconds)"
                             Minimum="0.5" Maximum="5" StepFrequency="0.5"
-                            ValueChanged="OnSilenceChanged" Width="250"/>
+                            ValueChanged="OnSilenceChanged" Width="250"
+                            HorizontalAlignment="Left"/>
 
                     <ToggleSwitch x:Uid="VoiceSettingsPage_TtsResponseToggle" x:Name="TtsResponseToggle" Toggled="OnTtsResponseToggled"
                                   Header="Read responses aloud"/>
