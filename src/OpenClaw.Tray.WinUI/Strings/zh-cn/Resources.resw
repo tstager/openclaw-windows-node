@@ -2097,9 +2097,6 @@
   <data name="UsagePage_TextBlock_45.Text" xml:space="preserve">
     <value>令牌</value>
   </data>
-  <data name="TokenCountText.Text" xml:space="preserve">
-    <value>284.5K</value>
-  </data>
   <data name="UsagePage_TextBlock_55.Text" xml:space="preserve">
     <value>提供程序</value>
   </data>

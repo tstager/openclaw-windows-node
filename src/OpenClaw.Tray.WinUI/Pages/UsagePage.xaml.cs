@@ -161,13 +161,24 @@ public sealed partial class UsagePage : Page
 
     public void UpdateUsageCost(GatewayCostUsageInfo cost)
     {
-        if (cost.Days != _currentPeriodDays)
-            return;
-
         if (cost.UpdatedAt < _lastAppliedUsageCostUpdatedAtUtc)
             return;
 
+        // The Windows tray fires usage.cost twice per refresh: once via
+        // RequestUsageAsync() (always days=30) and once directly via the
+        // selector (currently 7 or 30). If the gateway ignores the `days`
+        // request param or only replies to one of the two, the page used to
+        // reject the response that didn't match _currentPeriodDays and the
+        // spinner ran forever. Accept whatever days the server returns and,
+        // when the selector is out of sync, silently snap it to that period
+        // so the header isn't lying about what data the user sees.
+        if (cost.Days > 0 && cost.Days != _currentPeriodDays)
+        {
+            SyncSelectorToServerDays(cost.Days);
+        }
+
         _lastAppliedUsageCostUpdatedAtUtc = cost.UpdatedAt;
+        ConnectionInfoBar.IsOpen = false;
         TotalCostText.Text = $"${cost.Totals.TotalCost:F2}";
         TokenCountText.Text = FormatLargeNumber(cost.Totals.TotalTokens);
 
@@ -180,8 +191,24 @@ public sealed partial class UsagePage : Page
         UpdateDailyCostLoadingVisuals();
     }
 
+    private void SyncSelectorToServerDays(int days)
+    {
+        // Only the two SelectorBar items are valid targets; ignore anything
+        // else (e.g. server-defaulted 14 days) and just keep the user's pick.
+        if (days != 7 && days != 30) return;
+        _currentPeriodDays = days;
+        var target = days == 30 ? Period30DaysItem : Period7DaysItem;
+        if (!ReferenceEquals(PeriodSelector.SelectedItem, target))
+        {
+            PeriodSelector.SelectionChanged -= OnPeriodSelectionChanged;
+            try { PeriodSelector.SelectedItem = target; }
+            finally { PeriodSelector.SelectionChanged += OnPeriodSelectionChanged; }
+        }
+    }
+
     public void UpdateUsageStatus(GatewayUsageStatusInfo status)
     {
+        ConnectionInfoBar.IsOpen = false;
         ProviderCountText.Text = status.Providers.Count.ToString();
         ProviderListView.ItemsSource = status.Providers.Select(p => new ProviderRow
         {
@@ -231,7 +258,7 @@ public sealed partial class UsagePage : Page
         DailyListView.Visibility = _dailyCostLoading.ShouldShowContent ? Visibility.Visible : Visibility.Collapsed;
         // After Fail() the state is !IsRefreshing && !HasLoaded, which leaves the
         // card visually empty (no spinner, no rows, no message). Surface a
-        // disconnected message in that case so the page never looks frozen.
+        // message in that case so the page never looks frozen.
         bool failed = !_dailyCostLoading.IsRefreshing && !_dailyCostLoading.HasLoaded;
         DailyEmptyText.Text = failed ? DisconnectedListMessage : DailyEmptyMessage;
         DailyEmptyText.Visibility = (_dailyCostLoading.ShouldShowEmpty || failed) ? Visibility.Visible : Visibility.Collapsed;

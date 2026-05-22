@@ -59,7 +59,7 @@
                     <StackPanel Spacing="4">
                         <TextBlock x:Uid="UsagePage_TextBlock_45" Text="Tokens" Style="{StaticResource CaptionTextBlockStyle}"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"/>
-                        <TextBlock x:Uid="TokenCountText" x:Name="TokenCountText" Text="—"
+                        <TextBlock x:Name="TokenCountText" Text="—"
                                    Style="{StaticResource SubtitleTextBlockStyle}"/>
                     </StackPanel>
                 </Border>

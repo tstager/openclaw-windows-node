@@ -2098,9 +2098,6 @@ Voer op uw gateway-host (Mac/Linux) uit:
   <data name="UsagePage_TextBlock_45.Text" xml:space="preserve">
     <value>Toegangstokens</value>
   </data>
-  <data name="TokenCountText.Text" xml:space="preserve">
-    <value>284.5K</value>
-  </data>
   <data name="UsagePage_TextBlock_55.Text" xml:space="preserve">
     <value>Aanbieders</value>
   </data>

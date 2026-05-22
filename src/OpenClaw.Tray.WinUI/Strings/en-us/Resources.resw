@@ -2145,9 +2145,6 @@ On your gateway host (Mac/Linux), run:
   <data name="UsagePage_TextBlock_45.Text" xml:space="preserve">
     <value>Tokens</value>
   </data>
-  <data name="TokenCountText.Text" xml:space="preserve">
-    <value>284.5K</value>
-  </data>
   <data name="UsagePage_TextBlock_55.Text" xml:space="preserve">
     <value>Providers</value>
   </data>
