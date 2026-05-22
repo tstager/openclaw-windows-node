@@ -113,16 +113,13 @@ When the node connects, it advertises these capabilities:
 - If you see "Camera access blocked", enable camera access for desktop apps in Windows Privacy settings
 - Packaged MSIX builds will show the system consent prompt automatically
 
-### MXC sandbox filesystem grants
-- `system.run` with sandboxing enabled uses MXC AppContainer filesystem grants. The cwd is granted **read-only** automatically when it is not already covered by an explicit grant. If a command needs to write in its cwd, grant that folder read-write in Sandbox settings.
-- As a temporary MXC compatibility workaround, OpenClaw adds read-only grants for the drive roots used by sandbox grants and shell startup. `cmd.exe` currently stats the drive root during startup; this workaround should be removed after MXC no longer requires it.
-- MXC filesystem filtering requires NTFS-backed paths. ReFS volumes do not have the required filter-driver behavior, so grants on ReFS paths can fail with `Access is denied` even when the policy includes the path.
-- MXC integration tests self-skip on GitHub Actions because MXC/AppContainer filesystem behavior depends on local Windows sandbox support. Run MXC tests from an NTFS-backed checkout/output folder on a local Windows machine after building the tray app so `wxc-exec.exe` has been copied into `OpenClaw.Tray.WinUI\bin\...\tools\mxc\<arch>\`:
+### Local sandbox validation
+- Sandbox integration tests are intended for local Windows development machines and may skip when the required local sandbox prerequisites are unavailable.
+- Build the tray app before running local sandbox validation so the required sandbox helper binaries are present in the app output.
 
   ```powershell
   .\build.ps1
   $env:OPENCLAW_RUN_INTEGRATION='1'
-  $env:OPENCLAW_WXC_EXEC='D:\github\moltbot-windows-hub\src\OpenClaw.Tray.WinUI\bin\Debug\net10.0-windows10.0.22621.0\win-x64\tools\mxc\x64\wxc-exec.exe'
   dotnet test .\tests\OpenClaw.Shared.Tests\OpenClaw.Shared.Tests.csproj --filter "FullyQualifiedName~Mxc"
   ```
 

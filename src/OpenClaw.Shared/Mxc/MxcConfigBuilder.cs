@@ -57,9 +57,8 @@ public static class MxcConfigBuilder
         var commandLine = ShellCommandLine.Build(args.Shell, args.Command, args.Argv);
 
         // readonly = UI grants + every existing PATH dir (so tools like git,
-        // node, python can be read inside the sandbox). PATH drive roots are
-        // skipped by ResolvePathDirsForReadonly; shell startup roots are added
-        // explicitly below.
+        // node, python can be read inside the sandbox). Additional compatibility
+        // paths are added below.
         var roFromPolicy = (policy?.Filesystem?.ReadonlyPaths ?? Array.Empty<string>()).ToList();
         var pathDirs = ResolvePathDirsForReadonly(pathEnvVar);
         foreach (var dir in pathDirs)
@@ -70,7 +69,7 @@ public static class MxcConfigBuilder
         var rwFromPolicy = (policy?.Filesystem?.ReadwritePaths ?? Array.Empty<string>()).ToList();
         if (!rwFromPolicy.Contains(scratchDir, StringComparer.OrdinalIgnoreCase))
             rwFromPolicy.Add(scratchDir);
-        AddShellStartupDriveRoots(roFromPolicy, roFromPolicy.Concat(rwFromPolicy).ToArray());
+        AddCompatibilityReadonlyPaths(roFromPolicy, roFromPolicy.Concat(rwFromPolicy).ToArray());
 
         // denied list from policy (settings dir, ~/.ssh, browser profiles, ...).
         var denied = (policy?.Filesystem?.DeniedPaths ?? Array.Empty<string>()).ToList();
@@ -213,16 +212,16 @@ public static class MxcConfigBuilder
         }
     }
 
-    private static void AddShellStartupDriveRoots(List<string> readonlyPaths, IEnumerable<string> grantedPaths)
+    private static void AddCompatibilityReadonlyPaths(List<string> readonlyPaths, IEnumerable<string> grantedPaths)
     {
         foreach (var path in grantedPaths)
-            AddDriveRoot(readonlyPaths, path);
+            AddCompatibilityReadonlyPath(readonlyPaths, path);
 
-        AddDriveRoot(readonlyPaths, Environment.GetFolderPath(Environment.SpecialFolder.Windows));
-        AddDriveRoot(readonlyPaths, Environment.GetEnvironmentVariable("SystemDrive") ?? string.Empty);
+        AddCompatibilityReadonlyPath(readonlyPaths, Environment.GetFolderPath(Environment.SpecialFolder.Windows));
+        AddCompatibilityReadonlyPath(readonlyPaths, Environment.GetEnvironmentVariable("SystemDrive") ?? string.Empty);
     }
 
-    private static void AddDriveRoot(List<string> readonlyPaths, string path)
+    private static void AddCompatibilityReadonlyPath(List<string> readonlyPaths, string path)
     {
         string? root;
         try { root = Path.GetPathRoot(Path.GetFullPath(path)); }

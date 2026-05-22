@@ -22,7 +22,7 @@ public class MxcCommandRunnerIntegrationTests
         if (IsGitHubActions())
         {
             Console.WriteLine(
-                "[mxc-integration] SKIPPING: GitHub Actions does not provide reliable MXC/AppContainer filesystem filtering.");
+                "[mxc-integration] SKIPPING: GitHub Actions does not provide the required local sandbox environment.");
             return null;
         }
 
@@ -35,20 +35,18 @@ public class MxcCommandRunnerIntegrationTests
             return null;
         }
 
-        if (!IsNtfsBackedPath(AppContext.BaseDirectory, out var testRoot, out var testFormat))
+        if (!HasSupportedSandboxPath(AppContext.BaseDirectory))
         {
             Console.WriteLine(
-                $"[mxc-integration] SKIPPING: test output path is on {testFormat} volume {testRoot}. " +
-                "MXC filesystem grants require NTFS-backed paths.");
+                "[mxc-integration] SKIPPING: test output path is not in a supported local sandbox location.");
             return null;
         }
 
         if (!string.IsNullOrWhiteSpace(availability.WxcExecPath)
-            && !IsNtfsBackedPath(availability.WxcExecPath, out var wxcRoot, out var wxcFormat))
+            && !HasSupportedSandboxPath(availability.WxcExecPath))
         {
             Console.WriteLine(
-                $"[mxc-integration] SKIPPING: wxc-exec.exe is on {wxcFormat} volume {wxcRoot}. " +
-                "Build or override OPENCLAW_WXC_EXEC from an NTFS-backed output folder.");
+                "[mxc-integration] SKIPPING: sandbox helper path is not in a supported local sandbox location.");
             return null;
         }
 
@@ -150,11 +148,10 @@ public class MxcCommandRunnerIntegrationTests
 
         try
         {
-            if (!IsNtfsBackedPath(dir, out var grantRoot, out var grantFormat))
+            if (!HasSupportedSandboxPath(dir))
             {
                 Console.WriteLine(
-                    $"[mxc-integration] SKIPPING: custom grant path is on {grantFormat} volume {grantRoot}. " +
-                    "MXC filesystem grants require NTFS-backed paths.");
+                    "[mxc-integration] SKIPPING: custom grant path is not in a supported local sandbox location.");
                 return;
             }
 
@@ -185,30 +182,22 @@ public class MxcCommandRunnerIntegrationTests
         }
     }
 
-    private static bool IsNtfsBackedPath(string path, out string root, out string format)
+    private static bool HasSupportedSandboxPath(string path)
     {
-        root = string.Empty;
-        format = "unknown";
-
         try
         {
-            root = Path.GetPathRoot(Path.GetFullPath(path)) ?? string.Empty;
+            var root = Path.GetPathRoot(Path.GetFullPath(path)) ?? string.Empty;
             if (string.IsNullOrWhiteSpace(root))
                 return false;
 
             var drive = new DriveInfo(root);
             if (!drive.IsReady)
-            {
-                format = "not-ready";
                 return false;
-            }
 
-            format = drive.DriveFormat;
-            return string.Equals(format, "NTFS", StringComparison.OrdinalIgnoreCase);
+            return string.Equals(drive.DriveFormat, "NTFS", StringComparison.OrdinalIgnoreCase);
         }
-        catch (Exception ex)
+        catch
         {
-            format = ex.GetType().Name;
             return false;
         }
     }

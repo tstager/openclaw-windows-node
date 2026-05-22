@@ -249,8 +249,8 @@ public sealed class DirectAppContainerExecutor : ISandboxExecutor
                 if (!string.Equals(drive.DriveFormat, "NTFS", StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.Warn(
-                        $"[mxc] filesystem grants on {drive.DriveFormat} volume {root} may fail: " +
-                        "MXC AppContainer filesystem filtering requires NTFS-backed paths.");
+                        $"[mxc] sandbox filesystem grants may be unsupported for volume {root}; " +
+                        "commands that need that path may fail.");
                 }
             }
             catch
