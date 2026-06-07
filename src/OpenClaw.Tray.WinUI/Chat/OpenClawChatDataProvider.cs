@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
@@ -2387,6 +2388,9 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
         new(@"(?<=[a-z0-9][.!?:])(?=[A-Z][a-z]+[\s,;:!?])",
             System.Text.RegularExpressions.RegexOptions.Compiled);
 
+    // SearchValues gives SIMD-accelerated scan without a per-call heap allocation.
+    private static readonly SearchValues<char> s_seamPunctChars = SearchValues.Create(".!?:");
+
     /// <summary>
     /// Re-insert paragraph breaks at gateway-glued content-block seams in
     /// an assistant message. Safe to call on any text — short text, text
@@ -2401,7 +2405,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
 
         // Fast path: if neither marker is present we can skip entirely.
         if (!text.Contains("**", System.StringComparison.Ordinal) &&
-            text.IndexOfAny(new[] { '.', '!', '?', ':' }) < 0)
+            text.AsSpan().IndexOfAny(s_seamPunctChars) < 0)
         {
             return text;
         }
@@ -2417,7 +2421,7 @@ public sealed class OpenClawChatDataProvider : IChatDataProvider
             int fenceStart = text.IndexOf("```", i, System.StringComparison.Ordinal);
             if (fenceStart < 0)
             {
-                sb.Append(RepairProseSegment(text.AsSpan(i).ToString()));
+                sb.Append(RepairProseSegment(text[i..]));
                 break;
             }
 
