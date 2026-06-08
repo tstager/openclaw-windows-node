@@ -479,8 +479,9 @@ public class OpenClawGatewayClientTests
     [Fact]
     public void OperatorConnect_FreshBootstrapDevice_StartsWithV2Signature()
     {
-        var helper = new GatewayClientTestHelper(tokenIsBootstrapToken: true);
-        helper.SetDeviceTokenForTest(null);
+        var tmpDir = Path.Combine(Path.GetTempPath(), $"oca-gw-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tmpDir);
+        var helper = new GatewayClientTestHelper(tokenIsBootstrapToken: true, identityPath: tmpDir);
 
         Assert.True(helper.Client.UseV2Signature);
     }
@@ -488,8 +489,9 @@ public class OpenClawGatewayClientTests
     [Fact]
     public void OperatorConnect_SharedTokenDevice_StartsWithV3Signature()
     {
-        var helper = new GatewayClientTestHelper(tokenIsBootstrapToken: false);
-        helper.SetDeviceTokenForTest(null);
+        var tmpDir = Path.Combine(Path.GetTempPath(), $"oca-gw-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tmpDir);
+        var helper = new GatewayClientTestHelper(tokenIsBootstrapToken: false, identityPath: tmpDir);
 
         Assert.False(helper.Client.UseV2Signature);
     }
