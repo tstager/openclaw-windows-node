@@ -19,7 +19,7 @@ public sealed class SetupWizardRunner
 
     public async Task<StepResult> RunAsync(CancellationToken ct)
     {
-        var registry = new GatewayRegistry(_ctx.DataDir);
+        var registry = new GatewayRegistry(_ctx.DataDir, logger: new SetupOpenClawLogger(_ctx.Logger));
         registry.Load();
 
         var record = !string.IsNullOrWhiteSpace(_ctx.GatewayRecordId)
@@ -165,6 +165,7 @@ public sealed class SetupWizardRunner
                     restartAttempts++;
                     _ctx.Logger.Warn($"Gateway restarted during wizard; reconnecting and replaying answers (attempt {restartAttempts}/2): {ex.Message}");
 
+                    // slopwatch-ignore: SW003 Cleanup is best-effort; failure cannot improve caller state and the original outcome is preserved.
                     try { await client.DisconnectAsync(); } catch { }
                     client.Dispose();
 

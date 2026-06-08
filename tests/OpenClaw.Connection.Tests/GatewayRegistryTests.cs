@@ -17,6 +17,7 @@ public class GatewayRegistryTests : IDisposable
 
     public void Dispose()
     {
+        // slopwatch-ignore: SW003 Test cleanup or fixture teardown is best-effort and must not hide the test outcome.
         try { Directory.Delete(_tempDir, true); } catch { }
     }
 
@@ -102,6 +103,19 @@ public class GatewayRegistryTests : IDisposable
         var registry = new GatewayRegistry(Path.Combine(_tempDir, "nonexistent"));
         registry.Load();
         Assert.Empty(registry.GetAll());
+    }
+
+    [Fact]
+    public void Load_WithCorruptedJson_LogsWarningAndStartsEmpty()
+    {
+        File.WriteAllText(Path.Combine(_tempDir, "gateways.json"), "{not json");
+        var logger = new CapturingLogger();
+        var registry = new GatewayRegistry(_tempDir, logger: logger);
+
+        registry.Load();
+
+        Assert.Empty(registry.GetAll());
+        Assert.Contains(logger.Warnings, warning => warning.Contains("not valid JSON", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -263,4 +277,14 @@ public class GatewayRegistryTests : IDisposable
         Id = id,
         Url = url
     };
+
+    private sealed class CapturingLogger : IOpenClawLogger
+    {
+        public List<string> Warnings { get; } = [];
+
+        public void Info(string message) { }
+        public void Debug(string message) { }
+        public void Warn(string message) => Warnings.Add(message);
+        public void Error(string message, Exception? ex = null) { }
+    }
 }
