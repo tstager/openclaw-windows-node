@@ -175,6 +175,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
     private DiagnosticsClipboardService? _diagnosticsClipboard;
     private ToastService? _toastService;
+    private AppNotificationService? _appNotificationService;
     
     // Node service (optional, enabled in settings)
     private NodeService? _nodeService;
@@ -466,6 +467,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
         _diagnosticsClipboard = new DiagnosticsClipboardService(BuildCommandCenterState);
         _toastService = new ToastService(() => _settings);
+        _appNotificationService = new AppNotificationService();
 
         DiagnosticsJsonlService.Write("app.start", new
         {
@@ -1766,6 +1768,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             _nodeService.ChannelHealthUpdated += _gatewayService.OnChannelHealthUpdated;
             _nodeService.InvokeCompleted += OnNodeInvokeCompleted;
             _nodeService.GatewaySelfUpdated += _gatewayService.OnGatewaySelfUpdated;
+            _nodeService.LocalExecApprovalDecided += OnLocalExecApprovalDecided;
             return _nodeService;
         }
         catch (Exception ex)
@@ -2184,6 +2187,78 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     private void OnNodeToastRequested(object? sender, Microsoft.Toolkit.Uwp.Notifications.ToastContentBuilder builder)
         => OnUiThread(() =>
             NonFatalAction.Run(() => _toastService!.ShowToast(builder), msg => Logger.Warn($"Failed to show node toast: {msg}")));
+
+    private void OnLocalExecApprovalDecided(object? sender, ExecApprovalPromptDecidedEventArgs args)
+    {
+        if (args.Source is not (ExecApprovalPromptDecisionSource.UserDeny
+            or ExecApprovalPromptDecisionSource.PolicyAutoDeny))
+            return;
+        try
+        {
+            _appNotificationService?.Show(new AppNotification
+            {
+                Title = LocalizationHelper.GetString("AppNotification_LocalCommandDenied_Title"),
+                Message = BuildLocalDenyNotificationMessage(args.Request),
+                Source = "exec-approval",
+                Category = "node.invoke",
+                Severity = AppNotificationSeverity.Warning,
+                DedupeKey = BuildLocalDenyDedupeKey(args.Request)
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"Failed to post local-deny app notification: {ex.Message}");
+        }
+    }
+
+    private static string BuildLocalDenyNotificationMessage(ExecApprovalPromptRequest request)
+    {
+        var subject = string.IsNullOrWhiteSpace(request.Command)
+            ? LocalizationHelper.GetString("AppNotification_LocalCommandDenied_UnknownCommandSubject")
+            : LocalizationHelper.Format(
+                "AppNotification_LocalCommandDenied_CommandSubjectFormat",
+                CompactNotificationText(request.Command.Trim()));
+
+        string message;
+        if (!string.IsNullOrWhiteSpace(request.Reason))
+        {
+            message = LocalizationHelper.Format(
+                "AppNotification_LocalCommandDenied_MessageFormat",
+                subject,
+                CompactNotificationText(request.Reason.Trim()));
+        }
+        else
+        {
+            message = LocalizationHelper.Format(
+                "AppNotification_LocalCommandDenied_MessageNoReasonFormat",
+                subject);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.MatchedPattern))
+        {
+            message += " " + LocalizationHelper.Format(
+                "AppNotification_LocalCommandDenied_PatternSuffixFormat",
+                CompactNotificationText(request.MatchedPattern.Trim()));
+        }
+
+        return message;
+    }
+
+    private static string CompactNotificationText(string text)
+    {
+        const int maxLength = 240;
+        if (text.Length <= maxLength)
+            return text;
+        return text[..(maxLength - 1)] + "…";
+    }
+
+    private static string BuildLocalDenyDedupeKey(ExecApprovalPromptRequest request)
+    {
+        var command = request.Command?.Trim() ?? string.Empty;
+        var reason = request.Reason?.Trim() ?? string.Empty;
+        var pattern = request.MatchedPattern?.Trim() ?? string.Empty;
+        return $"exec-denied:{command}:{reason}:{pattern}";
+    }
 
     private void OnNodeInvokeCompleted(object? sender, NodeInvokeCompletedEventArgs args)
     {
@@ -2606,6 +2681,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
         {
             _hubWindow = new HubWindow();
             _hubWindow.AppModel = _appState;
+            _hubWindow.BindAppNotifications(_appNotificationService!);
             _hubWindow.ApplyNavPaneState(_settings!);
             _hubWindow.OpenSetupAction = () => _ = ShowOnboardingAsync();
             _hubWindow.OpenConnectionStatusAction = ShowConnectionStatusWindow;
