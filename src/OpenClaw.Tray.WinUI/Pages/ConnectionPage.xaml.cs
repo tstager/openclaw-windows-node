@@ -1848,12 +1848,12 @@ public sealed partial class ConnectionPage : Page
 
     // ─── Operator card navigation ────────────────────────────────────
 
-    private void OnOpenSessions(object sender, RoutedEventArgs e) => ((IAppCommands)CurrentApp).Navigate("sessions", "connection");
-    private void OnOpenInstances(object sender, RoutedEventArgs e) => ((IAppCommands)CurrentApp).Navigate("instances", "connection");
+    private void OnOpenSessions(object sender, RoutedEventArgs e) => ((IAppCommands)CurrentApp).Navigate("sessions");
+    private void OnOpenInstances(object sender, RoutedEventArgs e) => ((IAppCommands)CurrentApp).Navigate("instances");
 
     // ─── Node card navigation ────────────────────────────────────────
 
-    private void OnOpenPermissions(object sender, RoutedEventArgs e) => ((IAppCommands)CurrentApp).Navigate("permissions", "connection");
+    private void OnOpenPermissions(object sender, RoutedEventArgs e) => ((IAppCommands)CurrentApp).Navigate("permissions");
 
     private void OnCopyNodeApproveCommand(object sender, RoutedEventArgs e)
     {

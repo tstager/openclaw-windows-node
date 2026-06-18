@@ -2678,7 +2678,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
     #region Window Management
 
-    internal void ShowHub(string? navigateTo = null, bool activate = true, string? originTag = null)
+    internal void ShowHub(string? navigateTo = null, bool activate = true)
     {
         if (_hubWindow == null || _hubWindow.IsClosed)
         {
@@ -2729,7 +2729,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
         if (navigateTo != null)
         {
-            _hubWindow.NavigateTo(navigateTo, originTag);
+            _hubWindow.NavigateTo(navigateTo);
         }
         if (activate)
         {
@@ -3018,8 +3018,13 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
     private async Task ShowOnboardingAsync()
     {
+        await EnsureSetupWindowAsync();
+    }
+
+    private async Task<(SetupWindow? Window, bool CreatedNew)> EnsureSetupWindowAsync()
+    {
         if (_settings == null)
-            return;
+            return (null, false);
 
         if (_setupWindow != null)
         {
@@ -3027,7 +3032,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
             await existingSetupWindow.WaitForInitialContentReadyAsync();
             if (ReferenceEquals(_setupWindow, existingSetupWindow) && !existingSetupWindow.IsClosed)
                 existingSetupWindow.BringToFrontForSetupLaunch();
-            return;
+            return (existingSetupWindow, false);
         }
 
         try
@@ -3047,10 +3052,37 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
                 setupWindow.BringToFrontForSetupLaunch();
                 Logger.Info("Opened tray-hosted setup window");
             }
+            return (setupWindow, true);
         }
         catch (Exception ex)
         {
             Logger.Error($"Failed to open setup window: {ex}");
+            return (null, false);
+        }
+    }
+
+    private async Task ShowGatewayWizardAsync()
+    {
+        var (setupWindow, createdNew) = await EnsureSetupWindowAsync();
+        if (setupWindow == null)
+            return;
+
+        // Only steer a freshly created setup window to the gateway wizard. An
+        // already-open setup window may be mid-install on ProgressPage, whose
+        // Unloaded handler cancels the running setup pipeline — navigating it
+        // away would abort an in-progress install. In that case leave the
+        // existing window on its current page (already brought to the front).
+        if (!createdNew)
+        {
+            Logger.Info("Setup window already open; skipping direct gateway wizard navigation to avoid interrupting active setup");
+            return;
+        }
+
+        await setupWindow.WaitForInitialContentReadyAsync();
+        if (ReferenceEquals(_setupWindow, setupWindow) && !setupWindow.IsClosed)
+        {
+            if (!setupWindow.TryNavigateToWizard())
+                Logger.Warn("Setup window is not ready for direct gateway wizard navigation; leaving current setup page visible");
         }
     }
 
@@ -3242,7 +3274,6 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
 
     void IAppCommands.OpenDashboard(string? path) => OpenDashboard(path);
     void IAppCommands.Navigate(string pageTag) => ShowHub(pageTag);
-    void IAppCommands.Navigate(string pageTag, string? originTag) => ShowHub(pageTag, originTag: originTag);
     void IAppCommands.Reconnect() => _ = _connectionManager?.ReconnectAsync();
     void IAppCommands.Disconnect()
     {
@@ -3253,6 +3284,7 @@ public partial class App : Application, OpenClawTray.Services.IAppCommands
     void IAppCommands.ShowChat() => ShowChatWindow();
     void IAppCommands.CheckForUpdates() => _ = _updateCoordinator!.CheckForUpdatesUserInitiatedAsync();
     void IAppCommands.ShowOnboarding() => _ = ShowOnboardingAsync();
+    void IAppCommands.ShowGatewayWizard() => _ = ShowGatewayWizardAsync();
     void IAppCommands.ShowConnectionStatus() => ShowConnectionStatusWindow();
     void IAppCommands.NotifySettingsSaved() => OnSettingsSaved(this, EventArgs.Empty);
 
