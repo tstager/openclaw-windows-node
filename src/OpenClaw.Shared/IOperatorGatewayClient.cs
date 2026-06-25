@@ -73,6 +73,19 @@ public interface IOperatorGatewayClient
     Task RequestCronListAsync();
     Task RequestCronStatusAsync();
     Task<bool> RunCronJobAsync(string jobId, bool force = true);
+    /// <summary>
+    /// Response-aware cron run request. Compatibility fallback for implementers
+    /// that only provide <see cref="RunCronJobAsync"/>; the fallback cannot
+    /// enforce <paramref name="timeoutMs"/> and implementers should not implement
+    /// <see cref="RunCronJobAsync"/> by delegating back to this method.
+    /// </summary>
+    async Task<CronRunRequestResult> RunCronJobDetailedAsync(string jobId, bool force = true, int timeoutMs = 12000)
+    {
+        var accepted = await RunCronJobAsync(jobId, force).ConfigureAwait(false);
+        return accepted
+            ? new CronRunRequestResult(true, true, null)
+            : CronRunRequestResult.NotAccepted(null);
+    }
     Task<bool> RemoveCronJobAsync(string jobId);
     Task<bool> AddCronJobAsync(object jobDefinition);
     Task<bool> UpdateCronJobAsync(string id, object patch);
@@ -141,4 +154,15 @@ public interface IOperatorGatewayClient
     /// <summary>Restore a session to a compaction checkpoint (<c>sessions.compaction.restore</c>).</summary>
     Task<SessionCompactionMutationResult> RestoreCompactionCheckpointAsync(string key, string checkpointId, int timeoutMs = 15000)
         => Task.FromResult(new SessionCompactionMutationResult { Key = key, CheckpointId = checkpointId, IsSupported = false });
+}
+
+public sealed record CronRunRequestResult(
+    bool Accepted,
+    bool Enqueued,
+    string? RunId,
+    string? Reason = null,
+    string? Error = null)
+{
+    public static CronRunRequestResult NotAccepted(string? error) =>
+        new(false, false, null, null, error);
 }
