@@ -14,6 +14,16 @@ The Windows Node feature allows the tray app to receive commands from the OpenCl
 
 ## What You Can Test Now
 
+### Agent-driven UI and MCP validation
+
+For changes touching tray UX, Settings, onboarding, chat/canvas, Command Center, Windows node capabilities, local MCP, gateway pairing/connection, permissions, or diagnostics, use `.agents/skills/openclaw-proof-validation/SKILL.md`.
+
+Short version: run required tests, collect a closeout proof pass with `.\run-app-local.ps1 -Isolated` when UI is involved, use computer-use or developer-provided screenshots/output for the active changed UI state, prove MCP with `winnode` or raw JSON-RPC, prove gateway paths when available, and include current-head concrete output under `## Real behavior proof`. Mid-development computer-use/MCP/rubber-duck validation is fine when explicitly requested or needed to unblock work.
+
+### New command MCP contract
+
+Every new Windows node call must be exposed through local MCP and `winnode`: register the capability, update `McpToolBridge.CommandDescriptions`, update `src/OpenClaw.WinNode.Cli/skill.md`, add focused tests, and prove discovery/invocation with `winnode` or raw MCP JSON-RPC.
+
 ### 1. Settings Toggle
 - Verify the toggle appears in Settings under "ADVANCED"
 - Verify it saves and persists across app restarts
@@ -156,25 +166,25 @@ When the node connects, it advertises these capabilities:
 ## Remaining Work (Roadmap)
 
 1. ~~**system.run + exec approvals**~~ ✅ Implemented
-   - `system.run` with PowerShell/cmd support
-   - `system.run.prepare` pre-flight command
-   - `system.which` command lookup
-   - `system.execApprovals` allowlist flow with base-hash optimistic concurrency for remote edits
-   - `system.run` environment override sanitizer blocks path/toolchain injection and secret-looking variables
+    - `system.run` with PowerShell/cmd support
+    - `system.run.prepare` pre-flight command
+    - `system.which` command lookup
+    - `system.execApprovals` allowlist flow with base-hash optimistic concurrency for remote edits
+    - `system.run` environment override sanitizer blocks path/toolchain injection and secret-looking variables
 2. ~~**screen.record**~~ ✅ Implemented
-   - Graphics Capture video recording (MP4/base64)
+    - Graphics Capture video recording (MP4/base64)
 3. ~~**camera.clip**~~ ✅ Implemented
-   - Short webcam video capture (MediaCapture + encoding)
+    - Short webcam video capture (MediaCapture + encoding)
 4. ~~**A2UI pushJSONL alias + device status**~~ ✅ Implemented
-   - Legacy `canvas.a2ui.pushJSONL`
-   - Safe `device.info` / `device.status`
+    - Legacy `canvas.a2ui.pushJSONL`
+    - Safe `device.info` / `device.status`
 5. ~~**Command Center diagnostics**~~ ✅ Implemented
-   - Channel/node/usage/pairing/allowlist diagnostics and recent invoke timeline
+    - Channel/node/usage/pairing/allowlist diagnostics and recent invoke timeline
 6. **Packaging & consent prompts**
-   - MSIX packaging with camera/screen capabilities for system prompts
+    - MSIX packaging with camera/screen capabilities for system prompts
 7. **Test matrix & polish**
-   - Canvas/screen/camera regression tests
-   - Handle timeouts/disconnects, reduce verbose logging
+    - Canvas/screen/camera regression tests
+    - Handle timeouts/disconnects, reduce verbose logging
 
 ## Files Involved
 
